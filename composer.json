@@ -1,0 +1,8 @@
+{
+    "autoload": {
+        "psr-4": { "Tailor\\": "src/" }
+    },
+    "require": {
+        "twig/twig": "1.*"
+    }
+}
