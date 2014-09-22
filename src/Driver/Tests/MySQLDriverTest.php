@@ -2,6 +2,7 @@
 
 namespace Tailor\Driver\Tests;
 
+use Tailor\Driver\Driver;
 use Tailor\Driver\DriverException;
 use Tailor\Driver\MySQLDriver;
 use Tailor\Driver\Tests\Fixtures\TestPDO;
@@ -99,12 +100,17 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
         return $pdo;
     }
+    public function testInterface()
+    {
+        $drv = new MySQLDriver($this->getPDOPassthrough(false, false));
+        $this->assertTrue($drv instanceof Driver);
+    }
 
     public function testGetNames()
     {
         $drv = new MysQLDriver($this->getPDOPassthrough(['foo']));
         $this->assertEquals(['foo'], $drv->getDatabaseNames());
-        $this->assertEquals(['foo'], $drv->getSchemaNames('ignored'));
+        $this->assertEquals([Driver::SCHEMA_DEFAULT], $drv->getSchemaNames('ignored'));
         $this->assertEquals(['foo'], $drv->getTableNames('ignored', 'ignored'));
 
         $drv = new MySQLDriver($this->getPDOPassthrough(false));
@@ -137,7 +143,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
     {
         $drv = new MySQLDriver($this->getPDOPassthrough(null, 1));
         $this->assertTrue($drv->dropDatabase('ignored'));
-        $this->assertTrue($drv->dropSchema('ignored', 'ignored'));
+        $this->assertFalse($drv->dropSchema('ignored', 'ignored')); /* Schemata not supported. */
         $this->assertTrue($drv->dropTable('ignored', 'ignored', 'ignored'));
 
         $drv = new MySQLDriver($this->getPDOPassthrough(null, false));

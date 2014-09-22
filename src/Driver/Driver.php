@@ -10,6 +10,20 @@ use Tailor\Model\Table;
 interface Driver
 {
     /**
+     * An identifier for the default database name.
+     *
+     * This can be used to represent Postgres' current database.
+     */
+    const DATABASE_DEFAULT = "__default_database__";
+
+    /**
+     * An identifier for the default schema name.
+     *
+     * This can be used for Postgres' public schema, or to represent MySQL's lack of a schema.
+     */
+    const SCHEMA_DEFAULT = "__default_schema__";
+
+    /**
      * Get a list of available database names.
      *
      * @return string[] A list of database names.

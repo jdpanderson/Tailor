@@ -1,0 +1,11 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__ . "/../vendor/autoload.php";
+
+use Tailor\Console\SingleCommandApplication;
+use Tailor\Console\TranslateCommand;
+use Symfony\Component\Console\Application;
+
+$application = new SingleCommandApplication(new TranslateCommand());
+$application->run();

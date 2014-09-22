@@ -80,6 +80,11 @@ class MySQLDriver extends BaseDriver
         return '`' . str_replace('`', '``', $identifier) . '`';
     }
 
+    /**
+     * Creates a new MySQL driver instance.
+     *
+     * @param PDO $pdo A configured PDO instance.
+     */
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
@@ -93,7 +98,7 @@ class MySQLDriver extends BaseDriver
      */
     public function getDatabaseNames()
     {
-        /* Same as SHOW SCHEMAS in MysQL */
+        /* Same as SHOW SCHEMAS in MySQL */
         return $this->run("SHOW DATABASES", PDO::FETCH_COLUMN);
     }
 
@@ -105,8 +110,11 @@ class MySQLDriver extends BaseDriver
      */
     public function getSchemaNames($database)
     {
-        /* Same as SHOW DATABASES in MysQL */
-        return $this->run("SHOW SCHEMAS", PDO::FETCH_COLUMN);
+        /* Same as SHOW DATABASES in MySQL */
+        //return $this->run("SHOW SCHEMAS", PDO::FETCH_COLUMN);
+
+        /* Until MySQL supports schemas, return the "default" schema if there's no error. */
+        return $this->run("SHOW SCHEMAS", PDO::FETCH_COLUMN) ? [Driver::SCHEMA_DEFAULT] : false;
     }
 
     /**
@@ -118,8 +126,11 @@ class MySQLDriver extends BaseDriver
      */
     public function getTableNames($database, $schema)
     {
-        $database = $this->quoteIdentifier($database);
-        return $this->run("SHOW TABLES IN {$database}", PDO::FETCH_COLUMN);
+        if ($database = $this->interpretDatabase($database, $schema)) {
+            return $this->run(sprintf("SHOW TABLES IN %s", $this->quoteIdentifier($database)), PDO::FETCH_COLUMN);
+        } else {
+            return $this->run("SHOW TABLES", PDO::FETCH_COLUMN);
+        }
     }
 
     /**
@@ -132,9 +143,15 @@ class MySQLDriver extends BaseDriver
      */
     public function getTable($database, $schema, $tbl)
     {
-        $safeDB = $this->quoteIdentifier($database);
-        $safeTbl = $this->quoteIdentifier($tbl);
-        $columns = $this->run("DESCRIBE {$safeDB}.{$safeTbl}", PDO::FETCH_ASSOC);
+        if ($database = $this->interpretDatabase($database, $schema)) {
+            $columns = $this->run(sprintf(
+                "DESCRIBE %s.%s",
+                $this->quoteIdentifier($database),
+                $this->quoteIdentifier($tbl)
+            ), PDO::FETCH_ASSOC);
+        } else {
+            $columns = $this->run(sprintf("DESCRIBE %s", $this->quoteIdentifier($tbl)), PDO::FETCH_ASSOC);
+        }
 
         if (!$columns) {
             return false;
@@ -243,20 +260,28 @@ class MySQLDriver extends BaseDriver
      */
     public function setTable($database, $schema, Table $table, $force = false)
     {
+        /* We either create or alter depending on whether the table exists. */
         $curTable = $this->getTable($database, $schema, $table->name);
 
-        if ($curTable === false) {
-            // Create
+        if ($database = $this->interpretDatabase($database, $schema)) {
+            $tableSQL = sprintf(
+                "%s.%s",
+                $this->quoteIdentifier($database),
+                $this->quoteIdentifier($table->name)
+            );
+        } else {
+            $tableSQL = $this->quoteIdentifier($table->name);
+        }
 
+        if ($curTable === false) {
             $cols = [];
             foreach ($table->columns as $column) {
                 $cols[] = $this->columnToSQL($column);
             }
 
             $sql = sprintf(
-                "CREATE TABLE %s.%s (\n%s\n) ENGINE=InnoDB DEFAULT CHARSET=utf8",
-                $this->quoteIdentifier($database),
-                $this->quoteIdentifier($table->name),
+                "CREATE TABLE %s (\n%s\n) ENGINE=InnoDB DEFAULT CHARSET=utf8",
+                $tableSQL,
                 implode(",\n", $cols)
             );
         } else {
@@ -315,9 +340,8 @@ class MySQLDriver extends BaseDriver
             }
 
             $sql = sprintf(
-                "ALTER TABLE %s.%s %s",
-                $this->quoteIdentifier($database),
-                $this->quoteIdentifier($table->name),
+                "ALTER TABLE %s %s",
+                $tableSQL,
                 implode(",", $sql)
             );
         }
@@ -333,12 +357,15 @@ class MySQLDriver extends BaseDriver
      */
     public function createDatabase($database)
     {
-        $database = $this->quoteIdentifier($database);
-        return $this->run("CREATE DATABASE {$database}", false) !== false;
+        if ($database === Driver::DATABASE_DEFAULT) {
+            return false;
+        }
+
+        return $this->run(sprintf("CREATE DATABASE %s", $this->quoteIdentifier($database)), false) !== false;
     }
 
     /**
-     * Create a schema with a given name.
+     * Create a schema with a given name; MySQL doesn't really support this.
      *
      * @param string $database The name of the database in which the schema should be created.
      * @param string $schema The name for the new schema.
@@ -346,8 +373,10 @@ class MySQLDriver extends BaseDriver
      */
     public function createSchema($database, $schema)
     {
-        $schema = $this->quoteIdentifier($schema);
-        return $this->run("CREATE SCHEMA {$schema}", false) !== false;
+        if ($database = $this->interpretDatabase($database, $schema)) {
+            return $this->run(sprintf("CREATE SCHEMA %s", $this->quoteIdentifier($database)), false) !== false;
+        }
+        return false;
     }
 
     /**
@@ -358,8 +387,11 @@ class MySQLDriver extends BaseDriver
      */
     public function dropDatabase($database)
     {
-        $database = $this->quoteIdentifier($database);
-        return $this->run("DROP DATABASE {$database}", false) !== false;
+        if ($database === Driver::DATABASE_DEFAULT) {
+            return false;
+        }
+
+        return $this->run(sprintf("DROP DATABASE %s", $this->quoteIdentifier($database)), false) !== false;
     }
 
     /**
@@ -371,8 +403,10 @@ class MySQLDriver extends BaseDriver
      */
     public function dropSchema($database, $schema)
     {
-        $schema = $this->quoteIdentifier($schema);
-        return $this->run("DROP SCHEMA {$schema}", false) !== false;
+        /* MySQL doesn't really support schemata; Don't interpret DB here to prevent a possible unexpected drop. */
+        //$schema = $this->quoteIdentifier($schema);
+        //return $this->run("DROP SCHEMA {$schema}", false) !== false;
+        return false;
     }
 
     /**
@@ -385,9 +419,36 @@ class MySQLDriver extends BaseDriver
      */
     public function dropTable($database, $schema, $table)
     {
-        $database = $this->quoteIdentifier($database);
-        $table = $this->quoteIdentifier($table);
-        return $this->run("DROP TABLE {$database}.{$table}", false) !== false;
+        if ($database = $this->interpretDatabase($database, $schema)) {
+            $tableSQL = sprintf(
+                "%s.%s",
+                $this->quoteIdentifier($database),
+                $this->quoteIdentifier($table)
+            );
+        } else {
+            $tableSQL = $this->quoteIdentifier($table);
+        }
+
+        return $this->run(sprintf("DROP TABLE %s", $tableSQL), false) !== false;
+    }
+
+    /**
+     * Interpret the given database and schema for use internally.
+     *
+     * If the database is given as non-default use that, otherwise try the schema. Falls back to nothing.
+     *
+     * @param string $database A database name.
+     * @param string $schema A schema name.
+     * @return string A database or schema name. False if neither is available.
+     */
+    private static function interpretDatabase($database, $schema)
+    {
+        if ($database !== Driver::DATABASE_DEFAULT) {
+            return $database;
+        } elseif ($schema !== Driver::SCHEMA_DEFAULT) {
+            return $schema;
+        }
+        return false;
     }
 
     /**
@@ -443,7 +504,7 @@ class MySQLDriver extends BaseDriver
      */
     private function columnToSQL($column)
     {
-        $sql = [$this->quoteIdentifier($column->name)];
+        $sql = [self::quoteIdentifier($column->name)];
 
         if ($column->type instanceof String) {
             if ($column->type->length < 255) {

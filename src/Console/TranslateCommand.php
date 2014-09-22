@@ -2,6 +2,7 @@
 
 namespace Tailor\Console;
 
+use Tailor\Driver\Driver;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -40,6 +41,8 @@ class TranslateCommand extends Command
         if (!$dst || !$src) {
             return 1; /* Error, in console terms. */
         }
+
+        $this->copyAll($src, $dst);
     }
 
     protected function getDriver($source)
@@ -52,5 +55,18 @@ class TranslateCommand extends Command
         }
 
         return null;
+    }
+
+    protected function copyAll(Driver $src, Driver $dst)
+    {
+        foreach ($src->getDatabaseNames() as $db) {
+            $dst->createDatabase($db);
+            foreach ($src->getSchemaNames($db) as $schema) {
+                $dst->createSchema($db, $schema);
+                foreach ($src->getTableNames($db, $schema) as $table) {
+                    $dst->setTable($db, $schema, $src->getTable($db, $schema));
+                }
+            }
+        }
     }
 }
