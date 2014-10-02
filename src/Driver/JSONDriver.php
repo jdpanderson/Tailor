@@ -84,7 +84,7 @@ class JSONDriver extends BaseDriver
 
     private function save()
     {
-        $json = json_encode($this->data);
+        $json = json_encode($this->data, JSON_PRETTY_PRINT);
 
         if (!$json) {
             return false;
@@ -93,7 +93,7 @@ class JSONDriver extends BaseDriver
         $overwritable = is_file($this->filename) && is_writable($this->filename);
         $creatable = is_writable(dirname($this->filename));
         if ($overwritable || $creatable) {
-            return file_put_contents($this->filename, json_encode($this->data)) !== false;
+            return file_put_contents($this->filename, $json) !== false;
         }
 
         return false;
