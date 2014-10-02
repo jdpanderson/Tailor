@@ -4,6 +4,7 @@ namespace Tailor\Driver;
 
 use PDO;
 use PDOException;
+use Tailor\Util\String as StringUtil;
 use Tailor\Model\Table;
 use Tailor\Model\Column;
 use Tailor\Model\Types\Boolean;
@@ -232,6 +233,10 @@ class MySQLDriver extends BaseDriver
                     $column->type->date = ($type !== 'TIME');
                     $column->type->time = ($type !== 'DATE');
                     $column->type->zone = $type === 'TIMESTAMP'; // Timestamps are stored in UTC
+                    break;
+
+                case 'ENUM':
+                    $column->type = new Enum(StringUtil::parseQuotedList($typeParams));
                     break;
 
                 case 'BIT':
