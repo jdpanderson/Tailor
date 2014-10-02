@@ -2,7 +2,10 @@
 
 namespace Tailor\Console;
 
+use \PDO;
 use Tailor\Driver\Driver;
+use Tailor\Driver\MySQLDriver;
+use Tailor\Driver\JSONDriver;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -50,7 +53,7 @@ class TranslateCommand extends Command
         if (substr($source, -5) === '.json') {
             return new JSONDriver($source);
         } elseif (substr($source, 0, 6) === 'mysql:') {
-            $pdo = new PDO($source);
+            $pdo = new PDO($source, 'test', 'test');
             return new MySQLDriver($pdo);
         }
 
@@ -60,11 +63,14 @@ class TranslateCommand extends Command
     protected function copyAll(Driver $src, Driver $dst)
     {
         foreach ($src->getDatabaseNames() as $db) {
+            if ($db != 'test') {
+                continue;
+            }
             $dst->createDatabase($db);
             foreach ($src->getSchemaNames($db) as $schema) {
                 $dst->createSchema($db, $schema);
                 foreach ($src->getTableNames($db, $schema) as $table) {
-                    $dst->setTable($db, $schema, $src->getTable($db, $schema));
+                    $dst->setTable($db, $schema, $src->getTable($db, $schema, $table));
                 }
             }
         }
