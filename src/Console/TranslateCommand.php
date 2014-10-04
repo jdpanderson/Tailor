@@ -104,13 +104,16 @@ class TranslateCommand extends Command
 
     protected function parseOption(&$opts, $val)
     {
-        if (!is_string($val) || strpos($val, "=") === false) {
+        if (!is_string($val)) {
             return false;
         }
 
-        list($option, $val) = explode("=", $val, 2);
-
-        $opts[$option] = $val;
+        if (strpos($val, '=') === false) {
+            $opts[$val] = true;
+        } else {
+            list($option, $val) = explode("=", $val, 2);
+            $opts[$option] = $val;
+        }
 
         return true;
     }
