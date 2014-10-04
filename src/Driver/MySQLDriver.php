@@ -21,6 +21,14 @@ use Tailor\Model\Types\String;
 class MySQLDriver extends BaseDriver
 {
     /**
+     * Constants for options accepted by this driver.
+     */
+    const OPT_PDO = 'pdo';
+    const OPT_DSN = 'dsn';
+    const OPT_USERNAME = 'username';
+    const OPT_PASSWORD = 'password';
+
+    /**
      * The PDO object used by this driver.
      *
      * @var PDO
@@ -86,9 +94,17 @@ class MySQLDriver extends BaseDriver
      *
      * @param PDO $pdo A configured PDO instance.
      */
-    public function __construct(PDO $pdo)
+    public function __construct(array $opts)
     {
-        $this->pdo = $pdo;
+        if (isset($opts[self::OPT_PDO]) && $opts[self::OPT_PDO] instanceof PDO) {
+            $this->pdo = $opts[self::OPT_PDO];
+        } elseif (!empty($opts[self::OPT_DSN])) {
+            $user = empty($opts[self::OPT_USERNAME]) ? null : $opts[self::OPT_USERNAME];
+            $pass = empty($opts[self::OPT_PASSWORD]) ? null : $opts[self::OPT_PASSWORD];
+            $this->pdo = new PDO($opts[self::OPT_DSN], $user, $pass);
+        } else {
+            throw new DriverException("Unable to connect to database: No DSN available.");
+        }
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
@@ -239,10 +255,9 @@ class MySQLDriver extends BaseDriver
                     $column->type = new Enum(StringUtil::parseQuotedList($typeParams));
                     break;
 
-                case 'BIT':
-                case 'ENUM':
-                case 'SET':
-                case 'YEAR':
+                case 'BIT': /* Easily supportable, but not of major interest to me right now. */
+                case 'SET': /* Not widely supported. Can be represented by a 64-bit integer. */
+                case 'YEAR': /* Not widely supported. Can be represented by a >16-bit integer. */
                     throw new DriverException("Sorry, $type is not yet supported");
 
                 default:

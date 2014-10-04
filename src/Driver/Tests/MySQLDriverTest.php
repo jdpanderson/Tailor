@@ -102,23 +102,23 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
     }
     public function testInterface()
     {
-        $drv = new MySQLDriver($this->getPDOPassthrough(false, false));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(false, false)]);
         $this->assertTrue($drv instanceof Driver);
     }
 
     public function testGetNames()
     {
-        $drv = new MysQLDriver($this->getPDOPassthrough(['foo']));
+        $drv = new MysQLDriver(['pdo' => $this->getPDOPassthrough(['foo'])]);
         $this->assertEquals(['foo'], $drv->getDatabaseNames());
         $this->assertEquals([Driver::SCHEMA_DEFAULT], $drv->getSchemaNames('ignored'));
         $this->assertEquals(['foo'], $drv->getTableNames('ignored', 'ignored'));
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(false));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(false)]);
         $this->assertFalse($drv->getDatabaseNames());
         $this->assertFalse($drv->getSchemaNames('ignored'));
         $this->assertFalse($drv->getTableNames('ignored', 'ignored'));
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(new PDOException()));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(new PDOException())]);
         $this->assertFalse($drv->getDatabaseNames());
         $this->assertFalse($drv->getSchemaNames('ignored'));
         $this->assertFalse($drv->getTableNames('ignored', 'ignored'));
@@ -126,32 +126,32 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate()
     {
-        $drv = new MySQLDriver($this->getPDOPassthrough(null, 1));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(null, 1)]);
         $this->assertTrue($drv->createDatabase('ignored'));
         $this->assertTrue($drv->createSchema('ignored', 'ignored'));
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(null, false));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(null, false)]);
         $this->assertFalse($drv->createDatabase('ignored'));
         $this->assertFalse($drv->createSchema('ignored', 'ignored'));
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(null, new PDOException()));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(null, new PDOException())]);
         $this->assertFalse($drv->createDatabase('ignored'));
         $this->assertFalse($drv->createSchema('ignored', 'ignored'));
     }
 
     public function testDrop()
     {
-        $drv = new MySQLDriver($this->getPDOPassthrough(null, 1));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(null, 1)]);
         $this->assertTrue($drv->dropDatabase('ignored'));
         $this->assertFalse($drv->dropSchema('ignored', 'ignored')); /* Schemata not supported. */
         $this->assertTrue($drv->dropTable('ignored', 'ignored', 'ignored'));
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(null, false));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(null, false)]);
         $this->assertFalse($drv->dropDatabase('ignored'));
         $this->assertFalse($drv->dropSchema('ignored', 'ignored'));
         $this->assertFalse($drv->dropTable('ignored', 'ignored', 'ignored'));
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(null, new PDOException()));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(null, new PDOException())]);
         $this->assertFalse($drv->dropDatabase('ignored'));
         $this->assertFalse($drv->dropSchema('ignored', 'ignored'));
         $this->assertFalse($drv->dropTable('ignored', 'ignored', 'ignored'));
@@ -159,7 +159,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
     public function testGetTable()
     {
-        $drv = new MySQLDriver($this->getPDOPassthrough(self::$describeTableData));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(self::$describeTableData)]);
 
         $tbl = $drv->getTable('ignored', 'ignored', 'ignored');
         foreach (self::$describeTableData as $num => $colData) {
@@ -192,7 +192,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         /* Unhandled types */
         $data = self::$describeTableData;
         $data[] = ['Field' => 'Unsupported1', 'Type' => 'bit'];
-        $drv = new MySQLDriver($this->getPDOPassthrough($data));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough($data)]);
         try {
             $tbl = $drv->getTable('ignored', 'ignored', 'ignored');
             $this->fail("bit isn't yet supported, so should throw exception");
@@ -202,7 +202,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         /* Unhandled types */
         $data = self::$describeTableData;
         $data[] = ['Field' => 'Unknown1', 'Type' => 'fubar'];
-        $drv = new MySQLDriver($this->getPDOPassthrough($data));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough($data)]);
         try {
             $tbl = $drv->getTable('ignored', 'ignored', 'ignored');
             $this->fail("fubar is not a known type, so should throw exception");
@@ -210,21 +210,21 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         }
 
         /* Imitate failure */
-        $drv = new MySQLDriver($this->getPDOPassthrough(false));
+            $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(false)]);
         $this->assertFalse($drv->getTable('ignored', 'ignored', 'ignored'));
     }
 
     public function testSetTable()
     {
         $pdo = $this->getPDOPassthrough(self::$describeTableData, 1);
-        $drv = new MySQLDriver($pdo);
+        $drv = new MySQLDriver(['pdo' => $pdo]);
         $tbl = $drv->getTable('testDB1', 'ignored', 'testTbl1');
         $drv->setTable('ignored', 'ignored', $tbl);
         // Above should do nothing; No exec should happen.
         $this->assertNull($this->lastExecSQL);
 
         /* Trigger a create */
-        $drv = new MySQLDriver($this->getPDOPassthrough(false, 1));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(false, 1)]);
         $drv->setTable('testDB2', 'ignored', $tbl);
 
         $this->assertEquals(
@@ -242,7 +242,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
             $this->lastExecSQL
         );
 
-        $drv = new MySQLDriver($this->getPDOPassthrough(self::$describeTableData, 1));
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(self::$describeTableData, 1)]);
 
         /* Drop a column and create a new */
         $tbl->columns[2]->name = "blah";

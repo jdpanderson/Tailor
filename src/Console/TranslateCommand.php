@@ -28,16 +28,40 @@ class TranslateCommand extends Command
                'destination',
                InputArgument::REQUIRED,
                'The the destination for the schema'
-            )
-        ;
+            )->addOption(
+                'src-opt',
+                's',
+                InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
+                'Pass an option to the source driver'
+            )->addOption(
+                'dst-opt',
+                'd',
+                InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
+                'Pass an option to the destination driver'
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!($src = $this->getDriver($input->getArgument('source')))) {
+        $srcOpts = [];
+        foreach ($input->getOption('src-opt') as $opt) {
+            if (!$this->parseOption($srcOpts, $opt)) {
+                $output->writeln("<warning>Source option does not appear to be in valid format. Option dropped.</warning>");
+            }
+        }
+
+        if (!($src = $this->getDriver($input->getArgument('source'), $srcOpts))) {
             $output->writeln("<error>No known driver for source {$input->getArgument('source')}</error>");
         }
-        if (!($dst = $this->getDriver($input->getArgument('destination')))) {
+
+        $dstOpts = [];
+        foreach ($input->getOption('dst-opt') as $opt) {
+            if (!$this->parseOption($dstOpts, $opt)) {
+                $output->writeln("<warning>Destination option does not appear to be in valid format. Option dropped.</warning>");
+            }
+        }
+
+        if (!($dst = $this->getDriver($input->getArgument('destination'), $dstOpts))) {
             $output->writeln("<error>No known driver for destination {$input->getArgument('destination')}</error>");
         }
 
@@ -48,13 +72,15 @@ class TranslateCommand extends Command
         $this->copyAll($src, $dst);
     }
 
-    protected function getDriver($source)
+    protected function getDriver($source, $opts)
     {
         if (substr($source, -5) === '.json') {
             return new JSONDriver($source);
+        } elseif ($source === 'mysql') {
+            return new MySQLDriver($opts);
         } elseif (substr($source, 0, 6) === 'mysql:') {
-            $pdo = new PDO($source, 'test', 'test');
-            return new MySQLDriver($pdo);
+            $opts['dsn'] = $source;
+            return new MySQLDriver($opts);
         }
 
         return null;
@@ -74,5 +100,18 @@ class TranslateCommand extends Command
                 }
             }
         }
+    }
+
+    protected function parseOption(&$opts, $val)
+    {
+        if (!is_string($val) || strpos($val, "=") === false) {
+            return false;
+        }
+
+        list($option, $val) = explode("=", $val, 2);
+
+        $opts[$option] = $val;
+
+        return true;
     }
 }
