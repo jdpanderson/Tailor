@@ -18,7 +18,7 @@ use Tailor\Model\Types\Integer;
 use Tailor\Model\Types\String;
 
 /**
- * Interface expected to be implemented by all drivers.
+ * Driver providing the MySQL dialect of SQL.
  */
 class Driver extends BaseDriver
 {
