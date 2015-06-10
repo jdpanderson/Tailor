@@ -220,54 +220,21 @@ class Driver extends BaseDriver
                 implode(",\n", $cols)
             );
         } else {
-            /* Index of columns in the table's new state */
-            $newCols = [];
-            foreach ($table->columns as $idx => $column) {
-                $newCols[$idx] = $column->name;
-            }
-
-            /* Index of columns in the table's old state */
-            $oldCols = [];
-            foreach ($curTable->columns as $idx => $column) {
-                $oldCols[$idx] = $column->name;
-            }
-
             $sql = [];
 
-            /* Drop any tables that are in the old and not the new */
-            foreach (array_diff($oldCols, $newCols) as $remove) {
-                $sql[] = sprintf("DROP COLUMN %s", $this->quoteIdentifier($remove));
+            list($add, $drop, $change) = Table::columnDiff($curTable, $table);
+
+            foreach ($drop as $dropCol) {
+                $sql[] = sprintf("DROP COLUMN %s", $this->quoteIdentifier($dropCol->name));
             }
 
-            /* Add columns that are in the new but not the old */
-            foreach (array_diff($newCols, $oldCols) as $create) {
-                foreach ($table->columns as $column) {
-                    if ($column->name === $create) {
-                        $sql[] = sprintf("ADD COLUMN %s", $this->columnToSQL($column));
-                        break;
-                    }
-                }
+            foreach ($add as $addCol) {
+                $sql[] = sprintf("ADD COLUMN %s", $this->columnToSQL($addCol));
             }
 
-            /* Compare any common columns, and modify if unequal */
-            foreach (array_intersect($newCols, $oldCols) as $common) {
-                $newCol = $oldCol = null;
-                foreach ($table->columns as $column) {
-                    if ($column->name === $common) {
-                        $newCol = $column;
-                        break;
-                    }
-                }
-                foreach ($curTable->columns as $column) {
-                    if ($column->name === $common) {
-                        $oldCol = $column;
-                        break;
-                    }
-                }
-
-                if ($newCol && $oldCol && !$newCol->equals($oldCol)) {
-                    $sql[] = sprintf("MODIFY %s", $this->columnToSQL($newCol));
-                }
+            foreach ($change as $changedCols) {
+                list($oldCol, $newCol) = $changedCols;
+                $sql[] = sprintf("MODIFY %s", $this->columnToSQL($newCol));
             }
 
             if (empty($sql)) {

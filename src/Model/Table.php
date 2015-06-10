@@ -70,4 +70,67 @@ class Table
             }
         }
     }
+
+    /**
+     * Get a column by name.
+     *
+     * @param string $name The name of the column to retrieve.
+     * @return Column The column, if found. False if not found.
+     */
+    public function getColumnByName($name)
+    {
+        foreach ($this->columns as $column) {
+            if ($column->name === $name) {
+                return $column;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Figure out which columns in a table have been added, removed, or changed.
+     *
+     * @param Table $old The original table
+     * @param Table $new The new table
+     * @return array A 3-element array (tuple) of added, dropped, and changed columns.
+     */
+    public static function columnDiff(Table $old, Table $new)
+    {
+        /* Index of columns in the table's new state */
+        $newCols = [];
+        foreach ($new->columns as $idx => $column) {
+            $newCols[$idx] = $column->name;
+        }
+
+        /* Index of columns in the table's old state */
+        $oldCols = [];
+        foreach ($old->columns as $idx => $column) {
+            $oldCols[$idx] = $column->name;
+        }
+
+        /* Drop any tables that are in the old and not the new */
+        $drop = [];
+        foreach (array_diff($oldCols, $newCols) as $dropName) {
+            $drop[] = $old->getColumnByName($dropName);
+        }
+
+        /* Add columns that are in the new but not the old */
+        $add = [];
+        foreach (array_diff($newCols, $oldCols) as $addName) {
+            $add[] = $new->getColumnByName($addName);
+        }
+
+        /* Compare any common columns, and modify if unequal */
+        $change = [];
+        foreach (array_intersect($newCols, $oldCols) as $commonName) {
+            $newCol = $new->getColumnByName($commonName);
+            $oldCol = $old->getColumnByName($commonName);
+
+            if ($newCol && $oldCol && !$newCol->equals($oldCol)) {
+                $change[] = [$oldCol, $newCol];
+            }
+        }
+
+        return [$add, $drop, $change];
+    }
 }
