@@ -4,7 +4,7 @@ namespace Tailor\Driver\Tests;
 
 use Tailor\Driver\Driver;
 use Tailor\Driver\DriverException;
-use Tailor\Driver\MySQLDriver;
+use Tailor\Driver\MySQL\Driver as MySQLDriver;
 use Tailor\Driver\Tests\Fixtures\TestPDO;
 use Tailor\Model\Table;
 use Tailor\Model\Column;

@@ -4,7 +4,7 @@ namespace Tailor\Console;
 
 use \PDO;
 use Tailor\Driver\Driver;
-use Tailor\Driver\MySQLDriver;
+use Tailor\Driver\MySQL\Driver;
 use Tailor\Driver\JSONDriver;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;

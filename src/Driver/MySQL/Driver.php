@@ -1,9 +1,11 @@
 <?php
 
-namespace Tailor\Driver;
+namespace Tailor\Driver\MySQL;
 
 use PDO;
 use PDOException;
+use Tailor\Driver\BaseDriver;
+use Tailor\Driver\DriverException;
 use Tailor\Util\String as StringUtil;
 use Tailor\Model\Table;
 use Tailor\Model\Column;
@@ -18,7 +20,7 @@ use Tailor\Model\Types\String;
 /**
  * Interface expected to be implemented by all drivers.
  */
-class MySQLDriver extends BaseDriver
+class Driver extends BaseDriver
 {
     /**
      * Constants for options accepted by this driver.
