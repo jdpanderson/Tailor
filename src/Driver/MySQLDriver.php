@@ -177,84 +177,7 @@ class MySQLDriver extends BaseDriver
         $table = new Table();
         $table->name = $tbl;
         foreach ($columns as $columnData) {
-            //$table->columns[] = $this->getColumn($columnData);
-            $columnData = array_change_key_case($columnData, CASE_LOWER);
-            $column = new Column($columnData['field'], null);
-            $column->null = ($columnData['null'] !== 'NO');
-            $column->primary = ($columnData['key'] === 'PRI');
-            $column->unique = ($columnData['key'] === 'UNI');
-            $column->default = ($columnData['default'] === 'NULL') ? null : $columnData['default'];
-
-            list($type, $typeParams, $typeExtra) = $this->parseTypeParams($columnData['type']);
-
-            $column->sequence = (strtoupper($columnData['extra']) === 'AUTO_INCREMENT');
-
-            switch ($type) {
-                case 'CHAR':
-                case 'VARCHAR':
-                case 'BINARY':
-                case 'VARBINARY':
-                    $column->type = new String((int)$typeParams, !in_array($type, ['CHAR', 'BINARY']), strpos($type, 'BINARY') !== false);
-                    break;
-
-                case 'TINYTEXT':
-                case 'TEXT':
-                case 'MEDIUMTEXT':
-                case 'LONGTEXT':
-                case 'TINYBLOB':
-                case 'BLOB':
-                case 'MEDIUMTBLOB':
-                case 'LONGBLOB':
-                    $column->type = new String(self::$strLengthMap[$type], true, strpos($type, 'BLOB') !== false);
-                    break;
-
-                case 'TINYINT':
-                case 'SMALLINT':
-                case 'MEDIUMINT':
-                case 'INT':
-                case 'INTEGER':
-                case 'BIGINT':
-                    $column->type = new Integer(self::$intSizeMap[$type], $typeExtra === 'UNSIGNED');
-                    break;
-
-                case 'FLOAT':
-                case 'REAL':
-                case 'DOUBLE':
-                case 'DOUBLE PRECISION':
-                    $column->type = new Float(self::$floatSizeMap[$type]);
-                    break;
-
-                case 'DECIMAL':
-                case 'NUMERIC':
-                    list($precision, $scale) = explode(',', $typeParams);
-                    $column->type = new Decimal($precision, $scale);
-                    break;
-
-                case 'DATE':
-                case 'TIME':
-                case 'DATETIME':
-                case 'TIMESTAMP':
-                    $column->type = new DateTime(
-                        $type !== 'TIME',
-                        $type !== 'DATE',
-                        $type === 'TIMESTAMP' // Timestamps are stored in UTC
-                    );
-                    break;
-
-                case 'ENUM':
-                    $column->type = new Enum(StringUtil::parseQuotedList($typeParams));
-                    break;
-
-                case 'BIT': /* Easily supportable, but not of major interest to me right now. */
-                case 'SET': /* Not widely supported. Can be represented by a 64-bit integer. */
-                case 'YEAR': /* Not widely supported. Can be represented by a >16-bit integer. */
-                    throw new DriverException("Sorry, $type is not yet supported");
-
-                default:
-                    throw new DriverException("Type $type is not known");
-            }
-
-            $table->columns[] = $column;
+            $table->columns[] = $this->getColumnFromDescription($columnData);
         }
         return $table;
     }
@@ -440,6 +363,89 @@ class MySQLDriver extends BaseDriver
         }
 
         return $this->run(sprintf("DROP TABLE %s", $tableSQL), false) !== false;
+    }
+
+    /**
+     * Get a column model from a DESCRIBE TABLE ? row.
+     *
+     * @param string[] $desc An associative array representing a row from describe command output.
+     * @return Column A column model based on the description row.
+     */
+    private function getColumnFromDescription($desc)
+    {
+        $desc = array_change_key_case($desc, CASE_LOWER);
+        $column = new Column($desc['field'], null);
+        $column->null = ($desc['null'] !== 'NO');
+        $column->primary = ($desc['key'] === 'PRI');
+        $column->unique = ($desc['key'] === 'UNI');
+        $column->default = ($desc['default'] === 'NULL') ? null : $desc['default'];
+        list($type, $typeParams, $typeExtra) = $this->parseTypeParams($desc['type']);
+        $column->sequence = (strtoupper($desc['extra']) === 'AUTO_INCREMENT');
+        switch ($type) {
+            case 'CHAR':
+            case 'VARCHAR':
+            case 'BINARY':
+            case 'VARBINARY':
+                $column->type = new String((int)$typeParams, !in_array($type, ['CHAR', 'BINARY']), strpos($type, 'BINARY') !== false);
+                break;
+
+            case 'TINYTEXT':
+            case 'TEXT':
+            case 'MEDIUMTEXT':
+            case 'LONGTEXT':
+            case 'TINYBLOB':
+            case 'BLOB':
+            case 'MEDIUMTBLOB':
+            case 'LONGBLOB':
+                $column->type = new String(self::$strLengthMap[$type], true, strpos($type, 'BLOB') !== false);
+                break;
+
+            case 'TINYINT':
+            case 'SMALLINT':
+            case 'MEDIUMINT':
+            case 'INT':
+            case 'INTEGER':
+            case 'BIGINT':
+                $column->type = new Integer(self::$intSizeMap[$type], $typeExtra === 'UNSIGNED');
+                break;
+
+            case 'FLOAT':
+            case 'REAL':
+            case 'DOUBLE':
+            case 'DOUBLE PRECISION':
+                $column->type = new Float(self::$floatSizeMap[$type]);
+                break;
+
+            case 'DECIMAL':
+            case 'NUMERIC':
+                list($precision, $scale) = explode(',', $typeParams);
+                $column->type = new Decimal($precision, $scale);
+                break;
+
+            case 'DATE':
+            case 'TIME':
+            case 'DATETIME':
+            case 'TIMESTAMP':
+                $column->type = new DateTime(
+                    $type !== 'TIME',
+                    $type !== 'DATE',
+                    $type === 'TIMESTAMP' // Timestamps are stored in UTC
+                );
+                break;
+
+            case 'ENUM':
+                $column->type = new Enum(StringUtil::parseQuotedList($typeParams));
+                break;
+            case 'BIT': /* Easily supportable, but not of major interest to me right now. */
+            case 'SET': /* Not widely supported. Can be represented by a 64-bit integer. */
+            case 'YEAR': /* Not widely supported. Can be represented by a >16-bit integer. */
+                throw new DriverException("Sorry, $type is not yet supported");
+
+            default:
+                throw new DriverException("Type $type is not known");
+        }
+
+        return $column;
     }
 
     /**
