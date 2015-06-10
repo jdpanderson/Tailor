@@ -191,7 +191,8 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
         /* Unhandled types */
         $data = self::$describeTableData;
-        $data[] = ['Field' => 'Unsupported1', 'Type' => 'bit'];
+        $data[] = ['Field' => 'Unsupported1', 'Type' => 'bit', 'Null' => 'NO', 'Key' => '', 'Default' => '', 'Extra' => ''];
+
         $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough($data)]);
         try {
             $tbl = $drv->getTable('ignored', 'ignored', 'ignored');
@@ -201,7 +202,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
         /* Unhandled types */
         $data = self::$describeTableData;
-        $data[] = ['Field' => 'Unknown1', 'Type' => 'fubar'];
+        $data[] = ['Field' => 'Unknown1', 'Type' => 'fubar', 'Null' => 'NO', 'Key' => '', 'Default' => '', 'Extra' => ''];
         $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough($data)]);
         try {
             $tbl = $drv->getTable('ignored', 'ignored', 'ignored');
@@ -210,7 +211,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         }
 
         /* Imitate failure */
-            $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(false)]);
+        $drv = new MySQLDriver(['pdo' => $this->getPDOPassthrough(false)]);
         $this->assertFalse($drv->getTable('ignored', 'ignored', 'ignored'));
     }
 

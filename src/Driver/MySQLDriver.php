@@ -480,7 +480,7 @@ class MySQLDriver extends BaseDriver
     private static function parseTypeParams($type)
     {
         if (strpos($type, '(') === false) {
-            return [strtoupper($type), null];
+            return [strtoupper($type), null, null];
         }
 
         list($type, $params) = explode('(', $type, 2);
