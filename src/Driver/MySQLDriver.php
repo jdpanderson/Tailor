@@ -177,9 +177,9 @@ class MySQLDriver extends BaseDriver
         $table = new Table();
         $table->name = $tbl;
         foreach ($columns as $columnData) {
+            //$table->columns[] = $this->getColumn($columnData);
             $columnData = array_change_key_case($columnData, CASE_LOWER);
-            $column = new Column();
-            $column->name = $columnData['field'];
+            $column = new Column($columnData['field'], null);
             $column->null = ($columnData['null'] !== 'NO');
             $column->primary = ($columnData['key'] === 'PRI');
             $column->unique = ($columnData['key'] === 'UNI');
@@ -194,10 +194,7 @@ class MySQLDriver extends BaseDriver
                 case 'VARCHAR':
                 case 'BINARY':
                 case 'VARBINARY':
-                    $column->type = new String();
-                    $column->type->length = (int)$typeParams;
-                    $column->type->variable = !in_array($type, ['CHAR', 'BINARY']);
-                    $column->type->binary = strpos($type, 'BINARY') !== false;
+                    $column->type = new String((int)$typeParams, !in_array($type, ['CHAR', 'BINARY']), strpos($type, 'BINARY') !== false);
                     break;
 
                 case 'TINYTEXT':
@@ -208,10 +205,7 @@ class MySQLDriver extends BaseDriver
                 case 'BLOB':
                 case 'MEDIUMTBLOB':
                 case 'LONGBLOB':
-                    $column->type = new String();
-                    $column->type->length = self::$strLengthMap[$type];
-                    $column->type->variable = true;
-                    $column->type->binary = strpos($type, 'BLOB') !== false;
+                    $column->type = new String(self::$strLengthMap[$type], true, strpos($type, 'BLOB') !== false);
                     break;
 
                 case 'TINYINT':
@@ -220,35 +214,31 @@ class MySQLDriver extends BaseDriver
                 case 'INT':
                 case 'INTEGER':
                 case 'BIGINT':
-                    $column->type = new Integer();
-                    $column->type->size = self::$intSizeMap[$type];
-                    $column->type->unsigned = ($typeExtra === 'UNSIGNED');
+                    $column->type = new Integer(self::$intSizeMap[$type], $typeExtra === 'UNSIGNED');
                     break;
 
                 case 'FLOAT':
                 case 'REAL':
                 case 'DOUBLE':
                 case 'DOUBLE PRECISION':
-                    $column->type = new Float();
-                    $column->type->size = self::$floatSizeMap[$type];
+                    $column->type = new Float(self::$floatSizeMap[$type]);
                     break;
 
                 case 'DECIMAL':
                 case 'NUMERIC':
                     list($precision, $scale) = explode(',', $typeParams);
-                    $column->type = new Decimal();
-                    $column->type->precision = $precision;
-                    $column->type->scale = $scale;
+                    $column->type = new Decimal($precision, $scale);
                     break;
 
                 case 'DATE':
                 case 'TIME':
                 case 'DATETIME':
                 case 'TIMESTAMP':
-                    $column->type = new DateTime();
-                    $column->type->date = ($type !== 'TIME');
-                    $column->type->time = ($type !== 'DATE');
-                    $column->type->zone = $type === 'TIMESTAMP'; // Timestamps are stored in UTC
+                    $column->type = new DateTime(
+                        $type !== 'TIME',
+                        $type !== 'DATE',
+                        $type === 'TIMESTAMP' // Timestamps are stored in UTC
+                    );
                     break;
 
                 case 'ENUM':
