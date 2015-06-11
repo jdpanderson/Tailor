@@ -38,7 +38,8 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         ['Field' => 'District',   'Type' => 'tinyblob',      'Null' => 'YES', 'Key' => 'MUL', 'Default' => '',     'Extra' => ''],
         ['Field' => 'Population', 'Type' => 'decimal(10,2)', 'Null' => 'NO',  'Key' => '',    'Default' => 0,      'Extra' => ''],
         ['Field' => 'Average',    'Type' => 'float',         'Null' => 'YES', 'Key' => '',    'Default' => '',     'Extra' => ''],
-        ['Field' => 'Update',     'Type' => 'timestamp',     'Null' => 'NO',  'Key' => '',    'Default' => '',     'Extra' => '']
+        ['Field' => 'Update',     'Type' => 'timestamp',     'Null' => 'NO',  'Key' => '',    'Default' => '',     'Extra' => ''],
+        ['Field' => 'Type',       'Type' => 'enum(\'foo\')', 'Null' => 'NO',  'Key' => '',    'Default' => 'foo',  'Extra' => ''],
     ];
     // @codingStandardsIgnoreEnd
 
@@ -186,6 +187,10 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($tbl->columns[5]->type instanceof Float);
         $this->assertTrue($tbl->columns[5]->null);
         $this->assertTrue($tbl->columns[6]->type instanceof DateTime);
+        $this->assertFalse($tbl->columns[7]->null);
+        $this->assertTrue($tbl->columns[7]->type instanceof Enum);
+        $this->assertEquals('foo', $tbl->columns[7]->default);
+
         // XXX assert a lot of things here. This does not cover every detail.
         //var_dump($tbl);
 
@@ -237,7 +242,8 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 `District` TINYBLOB DEFAULT "",
 `Population` DECIMAL(10, 2) NOT NULL DEFAULT "0",
 `Average` FLOAT DEFAULT "",
-`Update` TIMESTAMP NOT NULL DEFAULT ""
+`Update` TIMESTAMP NOT NULL DEFAULT "",
+`Type` ENUM("foo") NOT NULL DEFAULT "foo"
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8',
             // @codingStandardsIgnoreEnd
             $this->lastExecSQL
