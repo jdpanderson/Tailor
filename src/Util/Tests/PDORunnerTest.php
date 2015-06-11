@@ -53,4 +53,10 @@ class PDORunnerTest extends \PHPUnit_Framework_TestCase
             "Expected the contents of the 'foo' column (1) within an object"
         );
     }
+
+    public function testQuote()
+    {
+        $runner = new PDORunner(new PDO('sqlite::memory:'));
+        $this->assertEquals('foo\'\'bar', $runner->quote('foo\'bar'));
+    }
 }

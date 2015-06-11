@@ -33,7 +33,7 @@ class PDORunner
      *
      * @param string $query The query to execute, typically an INSERT/UPDATE/DELETE statement.
      * @param mixed[] $params An array of parameters to be bound to the placeholders in the statement.
-     * @return int The number of affected rows.
+     * @return int The number of affected rows, or false on error.
      */
     public function exec($query, array $params = [])
     {
@@ -65,5 +65,16 @@ class PDORunner
         }
 
         return $stmt->fetchAll($fetchMode);
+    }
+
+    /**
+     * Pass through (some of) the PDO::quote method.
+     *
+     * @param string $string A string to be quoted, according to the rules of PDO::quote.
+     * @return string A quoted version of the string parameter, or false on failure.
+     */
+    public function quote($string)
+    {
+        return $this->pdo->quote($string);
     }
 }
