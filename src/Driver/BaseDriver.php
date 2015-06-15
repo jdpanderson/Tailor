@@ -7,8 +7,18 @@ use Tailor\Model\Table;
 /**
  * Interface expected to be implemented by all drivers.
  */
-class BaseDriver implements Driver
+abstract class BaseDriver implements Driver
 {
+    /**
+     * Get an associative array of options supported by the driver.
+     *
+     * @return string[] An array of driver options, with option as the key pointing to a description in the value.
+     */
+    public static function getOptions()
+    {
+        return []; /* This driver supports no options. */
+    }
+
     /**
      * Get a list of available database names.
      *

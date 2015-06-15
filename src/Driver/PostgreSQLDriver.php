@@ -7,42 +7,27 @@ use Tailor\Model\Table;
 /**
  * Interface expected to be implemented by all drivers.
  */
-interface Driver
+class PostgreSQLDriver extends PDODriver
 {
     /**
-     * An identifier for the default database name.
+     * Get the PDO DSN prefix; Always 'mysql:'.
      *
-     * This can be used to represent Postgres' current database.
+     * @return string The DSN prefix for this driver.
      */
-    const DATABASE_DEFAULT = "__default_database__";
-
-    /**
-     * An identifier for the default schema name.
-     *
-     * This can be used for Postgres' public schema, or to represent MySQL's lack of a schema.
-     */
-    const SCHEMA_DEFAULT = "__default_schema__";
-
-    /**
-     * Get an associative array of options supported by the driver.
-     *
-     * @return string[] An array of driver options, with option as the key pointing to a description in the value.
-     */
-    public static function getOptions();
-
-    /**
-     * The standard constructor for all drivers.
-     *
-     * @param mixed[] $opts An associative array of driver options.
-     */
-    public function __construct(array $opts);
+    public static function getDSNPrefix()
+    {
+        return 'pgsql:';
+    }
 
     /**
      * Get a list of available database names.
      *
      * @return string[] A list of database names.
      */
-    public function getDatabaseNames();
+    public function getDatabaseNames()
+    {
+        return false;
+    }
 
     /**
      * Get a list of available schemas in a database.
@@ -50,7 +35,10 @@ interface Driver
      * @param string $database The database name from which schema names should be retrieved.
      * @return string[] A list of schema names.
      */
-    public function getSchemaNames($database);
+    public function getSchemaNames($database)
+    {
+        return false;
+    }
 
     /**
      * Get a list of tables that reside within a schema in a database.
@@ -59,7 +47,10 @@ interface Driver
      * @param string $schema The name of the schema.
      * @return string[] A list of table names.
      */
-    public function getTableNames($database, $schema);
+    public function getTableNames($database, $schema)
+    {
+        return false;
+    }
 
     /**
      * Fetch the structure of a table for a given database, schema, and table.
@@ -69,7 +60,10 @@ interface Driver
      * @param string $table THe name of the table.
      * @return Table A Table object that represents the table structure in a database.
      */
-    public function getTable($database, $schema, $table);
+    public function getTable($database, $schema, $table)
+    {
+        return false;
+    }
 
     /**
      * Create or update a table in a database.
@@ -80,7 +74,10 @@ interface Driver
      * @param bool $force If false, the driver should not perform possibly destructive changes.
      * @return bool True if operations were performed successfully.
      */
-    public function setTable($database, $schema, Table $table, $force = false);
+    public function setTable($database, $schema, Table $table, $force = false)
+    {
+        return false;
+    }
 
     /**
      * Create a database with a given name.
@@ -88,7 +85,10 @@ interface Driver
      * @param string $database The name for the new database.
      * @return bool True if the operation was performed successfully.
      */
-    public function createDatabase($database);
+    public function createDatabase($database)
+    {
+        return false;
+    }
 
     /**
      * Create a schema with a given name.
@@ -97,7 +97,10 @@ interface Driver
      * @param string $schema The name for the new schema.
      * @return bool True if the operation was performed successfully.
      */
-    public function createSchema($database, $schema);
+    public function createSchema($database, $schema)
+    {
+        return false;
+    }
 
     /**
      * Drop/delete a database.
@@ -105,7 +108,10 @@ interface Driver
      * @param string $database The name of the database to be dropped.
      * @return bool True if the operation was performed successfully.
      */
-    public function dropDatabase($database);
+    public function dropDatabase($database)
+    {
+        return false;
+    }
 
     /**
      * Drop/delete a schema.
@@ -114,7 +120,10 @@ interface Driver
      * @param string $schema The name of the schema to be dropped.
      * @return bool True if the operation was performed successfully.
      */
-    public function dropSchema($database, $schema);
+    public function dropSchema($database, $schema)
+    {
+        return false;
+    }
 
     /**
      * Drop/delete a table.
@@ -124,5 +133,8 @@ interface Driver
      * @param string $table The name of the table to be dropped.
      * @return bool True if the operation was performed successfully.
      */
-    public function dropTable($database, $schema, $table);
+    public function dropTable($database, $schema, $table)
+    {
+        return false;
+    }
 }

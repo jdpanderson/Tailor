@@ -19,6 +19,16 @@ class PDORunner
     private $pdo;
 
     /**
+     * Get the PDO object associated with this PDORunner.
+     *
+     * @return PDO
+     */
+    public function getPDO()
+    {
+        return $this->pdo;
+    }
+
+    /**
      * Build a PDORunner
      *
      * @param PDO $pdo

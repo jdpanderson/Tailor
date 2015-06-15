@@ -54,6 +54,13 @@ class PDORunnerTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function getGetter()
+    {
+        $pdo = new PDO('sqlite::memory');
+        $runner = new PDORunner();
+        $this->assertTrue($runner->getPDO() === $pdo);
+    }
+
     public function testQuote()
     {
         $runner = new PDORunner(new PDO('sqlite::memory:'));
