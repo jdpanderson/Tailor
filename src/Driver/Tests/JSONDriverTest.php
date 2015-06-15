@@ -13,7 +13,7 @@ class JSONDriverTest extends \PHPUnit_Framework_TestCase
     public function testLoad()
     {
         /* Loading a non-existant file should fail. */
-        $drv = new JSONDriver("/path/to/file/that/doesnt/exist");
+        $drv = new JSONDriver([JSONDriver::OPT_FILENAME => "/path/to/file/that/doesnt/exist"]);
         $this->assertFalse($drv->getDatabaseNames());
         $this->assertFalse($drv->getSchemaNames('foo'));
         $this->assertFalse($drv->getTableNames('foo', 'bar'));
@@ -22,7 +22,7 @@ class JSONDriverTest extends \PHPUnit_Framework_TestCase
         /* Loading a file with invalid content should fail. */
         $testFile = tempnam(sys_get_temp_dir(), "JSDTest");
         file_put_contents($testFile, "invalid");
-        $drv = new JSONDriver($testFile);
+        $drv = new JSONDriver([JSONDriver::OPT_FILENAME => $testFile]);
         $this->assertFalse($drv->getDatabaseNames());
 
         /* Loading a file with valid JSON should succeed. */
@@ -38,13 +38,13 @@ class JSONDriverTest extends \PHPUnit_Framework_TestCase
     public function testSave()
     {
         /* This is expected to fail */
-        $drv = new JSONDriver("/path/to/file/that/doesnt/exist");
+        $drv = new JSONDriver([JSONDriver::OPT_FILENAME => "/path/to/file/that/doesnt/exist"]);
         $drv->setTable('foo', 'bar', new Table());
         $this->assertFalse(is_file("/path/to/file/that/doesnt/exist"));
 
         /* Start tests that try to write to a real (temp) file. */
         $testFile = tempnam(sys_get_temp_dir(), "JSDTest");
-        $drv = new JSONDriver($testFile);
+        $drv = new JSONDriver([JSONDriver::OPT_FILENAME => $testFile]);
 
         /* Set data to something that will cause json_encode to fail. */
         $sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
@@ -70,7 +70,7 @@ class JSONDriverTest extends \PHPUnit_Framework_TestCase
     public function testGetTable()
     {
         $testFile = tempnam(sys_get_temp_dir(), "JSDTest");
-        $drv = new JSONDriver($testFile);
+        $drv = new JSONDriver([JSONDriver::OPT_FILENAME => $testFile]);
 
         $tbl = new Table("tbl", [new Column("col", new Integer(4))]);
         $drv->setTable('foo', 'bar', $tbl);
@@ -82,7 +82,7 @@ class JSONDriverTest extends \PHPUnit_Framework_TestCase
     public function testDatabaseOperations()
     {
         $testFile = tempnam(sys_get_temp_dir(), "JSDTest");
-        $drv = new JSONDriver($testFile);
+        $drv = new JSONDriver([JSONDriver::OPT_FILENAME => $testFile]);
         $drv->setData([]);
 
         /* Test createDatabase */

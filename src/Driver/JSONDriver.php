@@ -18,6 +18,11 @@ use Tailor\Model\Types\String;
 class JSONDriver extends BaseDriver
 {
     /**
+     * The option name passed to set the input/output filename.
+     */
+    const OPT_FILENAME = 'filename';
+
+    /**
      * The file we'll read and write.
      *
      * @var string
@@ -41,11 +46,31 @@ class JSONDriver extends BaseDriver
     private $data;
 
     /**
+     * Get an associative array of options supported by the driver.
+     *
+     * @return string[] An array of driver options, with option as the key pointing to a description in the value.
+     */
+    public static function getOptions()
+    {
+        return [
+            self::OPT_FILENAME => 'The file name to/from which JSON should be read/written.'
+        ];
+    }
+
+    /**
+     * Create a new JSON Driver
+     *
      * @param string $filename The name (and path) to the file.
      */
-    public function __construct($filename)
+    public function __construct(array $opts = [])
     {
-        $this->filename = $filename;
+        parent::__construct();
+
+        if (empty($opts[self::OPT_FILENAME])) {
+            throw new DriverException("JSON Driver requires the filename option");
+        }
+
+        $this->filename = $opts[self::OPT_FILENAME];
     }
 
     /**

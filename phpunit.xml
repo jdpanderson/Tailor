@@ -17,6 +17,7 @@
             <exclude>
                 <directory>src/Driver/Tests</directory>
                 <directory>src/Model/Tests</directory>
+                <directory>src/Util/Tests</directory>
             </exclude>
         </whitelist>
     </filter>

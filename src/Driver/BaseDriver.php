@@ -7,7 +7,7 @@ use Tailor\Model\Table;
 /**
  * Interface expected to be implemented by all drivers.
  */
-abstract class BaseDriver implements Driver
+class BaseDriver implements Driver
 {
     /**
      * Get an associative array of options supported by the driver.
@@ -17,6 +17,15 @@ abstract class BaseDriver implements Driver
     public static function getOptions()
     {
         return []; /* This driver supports no options. */
+    }
+
+    /**
+     * Create a new BaseDriver, which does nothing.
+     *
+     * @param mixed[] $opts Options (attributes) for this driver, of which there are none.
+     */
+    public function __construct(array $opts = [])
+    {
     }
 
     /**

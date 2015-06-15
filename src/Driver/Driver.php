@@ -35,7 +35,7 @@ interface Driver
      *
      * @param mixed[] $opts An associative array of driver options.
      */
-    public function __construct(array $opts);
+    public function __construct(array $opts = []);
 
     /**
      * Get a list of available database names.

@@ -12,4 +12,8 @@ class TestPDO extends PDO
     public function __construct()
     {
     }
+
+    public function setAttribute($attr, $value)
+    {
+    }
 }

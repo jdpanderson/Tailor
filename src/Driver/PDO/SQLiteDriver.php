@@ -152,16 +152,6 @@ class SQLiteDriver extends BaseDriver
     }
 
     /**
-     * Creates a new MySQL driver instance.
-     *
-     * @param PDO $pdo A configured PDO instance.
-     */
-    public function __construct(PDO $pdo)
-    {
-        $this->pdo = $pdo;
-    }
-
-    /**
      * Get a list of available database names.
      *
      * @return string[] A list of database names.

@@ -25,10 +25,10 @@ class TwigDriverTest extends \PHPUnit_Framework_TestCase
     public function testOutput()
     {
         $outfile = tempnam(sys_get_temp_dir(), "TDTest");
-        $drv = new TwigDriver(
-            $this->getTwigEnv(self::$testTemplates),
-            [$outfile => "test.md"]
-        );
+        $drv = new TwigDriver([
+            TwigDriver::OPT_TWIG => $this->getTwigEnv(self::$testTemplates),
+            TwigDriver::OPT_TEMPLATELIST => [$outfile => "test.md"],
+        ]);
 
         $table = new Table("MyTable", [new Column("MyColumn")]);
         $drv->setTable('MyDatabase', 'MySchema', $table);

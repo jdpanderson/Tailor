@@ -12,6 +12,10 @@ use Tailor\Model\Table;
  */
 class TwigDriver extends BaseDriver
 {
+    const OPT_TWIG = 'twig';
+    const OPT_TEMPLATELIST = 'templatelist';
+    const OPT_DESTDIR = 'destdir';
+
     /**
      * The twig instance which will serve to render templates.
      *
@@ -19,15 +23,37 @@ class TwigDriver extends BaseDriver
      */
     private $twig;
 
+
     /**
-     * @param Twig $twig The twig instance for rendering templates.
-     * @param mixed $options An array of options controlling template rendering.
+     * Get an associative array of options supported by the driver.
+     *
+     * @return string[] An array of driver options, with option as the key pointing to a description in the value.
      */
-    public function __construct(Twig_Environment $twig, $templates = [], $destdir = '.')
+    public static function getOptions()
     {
-        $this->twig = $twig;
-        $this->templates = $templates;
-        $this->destdir = $destdir;
+        return [
+            self::OPT_TWIG => 'The configured Twig_Environment object',
+            self::OPT_TEMPLATELIST => 'A list of templates to be rendered',
+            self::OPT_DESTDIR => 'The destination directory for rendered templates'
+        ];
+    }
+
+    /**
+     * Create a new Twig Driver
+     *
+     * @param mixed[] $opts An associative array of driver options.
+     */
+    public function __construct(array $opts = [])
+    {
+        parent::__construct();
+
+        if (empty($opts[self::OPT_TWIG]) || empty($opts[self::OPT_TEMPLATELIST])) {
+            throw new DriverException("Twig Driver missing required option");
+        }
+
+        $this->twig = $opts[self::OPT_TWIG];
+        $this->templates = $opts[self::OPT_TEMPLATELIST];
+        $this->destdir = empty($opts[self::OPT_DESTDIR]) ? getcwd() : $opts[self::OPT_DESTDIR];
     }
 
     /**

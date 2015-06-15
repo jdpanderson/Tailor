@@ -1,9 +1,10 @@
 <?php
 
-namespace Tailor\Driver\MySQL;
+namespace Tailor\Driver\PDO;
 
 use PDO;
 use PDOException;
+use Tailor\Driver\Driver;
 use Tailor\Driver\BaseDriver;
 use Tailor\Driver\DriverException;
 use Tailor\Util\PDORunner;
@@ -21,7 +22,7 @@ use Tailor\Model\Types\String;
 /**
  * Driver providing the MySQL dialect of SQL.
  */
-class Driver extends BaseDriver
+class MySQL extends PDODriver
 {
     /**
      * Constants for options accepted by this driver.
@@ -30,13 +31,6 @@ class Driver extends BaseDriver
     const OPT_DSN = 'dsn';
     const OPT_USERNAME = 'username';
     const OPT_PASSWORD = 'password';
-
-    /**
-     * The PDORunner used to execute queries.
-     *
-     * @var PDORunner
-     */
-    private $queryRunner;
 
     /**
      * Map integer types to their sizes in bytes.
@@ -93,27 +87,6 @@ class Driver extends BaseDriver
     }
 
     /**
-     * Creates a new MySQL driver instance.
-     *
-     * @param PDO $pdo A configured PDO instance.
-     */
-    public function __construct(array $opts)
-    {
-        if (isset($opts[self::OPT_PDO]) && $opts[self::OPT_PDO] instanceof PDO) {
-            $pdo = $opts[self::OPT_PDO];
-        } elseif (!empty($opts[self::OPT_DSN])) {
-            $user = empty($opts[self::OPT_USERNAME]) ? null : $opts[self::OPT_USERNAME];
-            $pass = empty($opts[self::OPT_PASSWORD]) ? null : $opts[self::OPT_PASSWORD];
-            $pdo = new PDO($opts[self::OPT_DSN], $user, $pass);
-        } else {
-            throw new DriverException("Unable to connect to database: No DSN available.");
-        }
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->queryRunner = new PDORunner($pdo);
-    }
-
-    /**
      * Get a list of available database names.
      *
      * @return string[] A list of database names.
@@ -121,7 +94,7 @@ class Driver extends BaseDriver
     public function getDatabaseNames()
     {
         /* Same as SHOW SCHEMAS in MySQL */
-        return $this->queryRunner->query("SHOW DATABASES", [], PDO::FETCH_COLUMN);
+        return $this->query("SHOW DATABASES", [], PDO::FETCH_COLUMN);
     }
 
     /**
@@ -133,10 +106,10 @@ class Driver extends BaseDriver
     public function getSchemaNames($database)
     {
         /* Same as SHOW DATABASES in MySQL */
-        //return $this->queryRunner->query("SHOW SCHEMAS", PDO::FETCH_COLUMN);
+        //return $this->query("SHOW SCHEMAS", PDO::FETCH_COLUMN);
 
         /* Until MySQL supports schemas, return the "default" schema if there's no error. */
-        return $this->queryRunner->query("SHOW SCHEMAS", [], PDO::FETCH_COLUMN) ? [Driver::SCHEMA_DEFAULT] : false;
+        return $this->query("SHOW SCHEMAS", [], PDO::FETCH_COLUMN) ? [Driver::SCHEMA_DEFAULT] : false;
     }
 
     /**
@@ -149,9 +122,9 @@ class Driver extends BaseDriver
     public function getTableNames($database, $schema)
     {
         if ($database = $this->interpretDatabase($database, $schema)) {
-            return $this->queryRunner->query(sprintf("SHOW TABLES IN %s", $this->quoteIdentifier($database)), [], PDO::FETCH_COLUMN);
+            return $this->query(sprintf("SHOW TABLES IN %s", $this->quoteIdentifier($database)), [], PDO::FETCH_COLUMN);
         } else {
-            return $this->queryRunner->query("SHOW TABLES", [], PDO::FETCH_COLUMN);
+            return $this->query("SHOW TABLES", [], PDO::FETCH_COLUMN);
         }
     }
 
@@ -166,13 +139,13 @@ class Driver extends BaseDriver
     public function getTable($database, $schema, $tbl)
     {
         if ($database = $this->interpretDatabase($database, $schema)) {
-            $columns = $this->queryRunner->query(sprintf(
+            $columns = $this->query(sprintf(
                 "DESCRIBE %s.%s",
                 $this->quoteIdentifier($database),
                 $this->quoteIdentifier($tbl)
             ), [], PDO::FETCH_ASSOC);
         } else {
-            $columns = $this->queryRunner->query(sprintf("DESCRIBE %s", $this->quoteIdentifier($tbl)), [], PDO::FETCH_ASSOC);
+            $columns = $this->query(sprintf("DESCRIBE %s", $this->quoteIdentifier($tbl)), [], PDO::FETCH_ASSOC);
         }
 
         if (!$columns) {
@@ -251,7 +224,7 @@ class Driver extends BaseDriver
             );
         }
 
-        return $this->queryRunner->exec($sql, false) !== false;
+        return $this->exec($sql) !== false;
     }
 
     /**
@@ -266,7 +239,7 @@ class Driver extends BaseDriver
             return false;
         }
 
-        return $this->queryRunner->exec(sprintf("CREATE DATABASE %s", $this->quoteIdentifier($database)), false) !== false;
+        return $this->exec(sprintf("CREATE DATABASE %s", $this->quoteIdentifier($database))) !== false;
     }
 
     /**
@@ -279,7 +252,7 @@ class Driver extends BaseDriver
     public function createSchema($database, $schema)
     {
         if ($database = $this->interpretDatabase($database, $schema)) {
-            return $this->queryRunner->exec(sprintf("CREATE SCHEMA %s", $this->quoteIdentifier($database)), false) !== false;
+            return $this->exec(sprintf("CREATE SCHEMA %s", $this->quoteIdentifier($database))) !== false;
         }
         return false;
     }
@@ -296,7 +269,7 @@ class Driver extends BaseDriver
             return false;
         }
 
-        return $this->queryRunner->exec(sprintf("DROP DATABASE %s", $this->quoteIdentifier($database)), false) !== false;
+        return $this->exec(sprintf("DROP DATABASE %s", $this->quoteIdentifier($database))) !== false;
     }
 
     /**
@@ -310,7 +283,7 @@ class Driver extends BaseDriver
     {
         /* MySQL doesn't really support schemata; Don't interpret DB here to prevent a possible unexpected drop. */
         //$schema = $this->quoteIdentifier($schema);
-        //return $this->queryRunner->exec("DROP SCHEMA {$schema}", false) !== false;
+        //return $this->exec("DROP SCHEMA {$schema}", false) !== false;
         return false;
     }
 
@@ -334,7 +307,7 @@ class Driver extends BaseDriver
             $tableSQL = $this->quoteIdentifier($table);
         }
 
-        return $this->queryRunner->exec(sprintf("DROP TABLE %s", $tableSQL), false) !== false;
+        return $this->exec(sprintf("DROP TABLE %s", $tableSQL)) !== false;
     }
 
     /**
@@ -532,7 +505,7 @@ class Driver extends BaseDriver
             /* MySQL doesn't directly support boolean */
             $type = "TINYINT(1) UNSIGNED";
         } elseif ($column->type instanceof Enum) {
-            $values = array_map([$this->queryRunner, 'quote'], $column->type->values);
+            $values = array_map([$this, 'quote'], $column->type->values);
             $type = "ENUM(" . implode(",", $values) . ")";
         } else {
             throw new DriverException("Unsupported type: " . get_class($column->type));
@@ -550,7 +523,7 @@ class Driver extends BaseDriver
             $sql[] = "NOT NULL";
         }
         if ($column->default !== null) {
-            $default = $this->queryRunner->quote($column->default);
+            $default = $this->quote($column->default);
             $sql[] = "DEFAULT {$default}";
         }
 
