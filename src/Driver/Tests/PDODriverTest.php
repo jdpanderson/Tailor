@@ -3,6 +3,7 @@
 namespace Tailor\Driver\Tests;
 
 use PDO;
+use Tailor\Driver\DriverException;
 use Tailor\Driver\PDO\PDODriver;
 
 class PDODriverTest extends \PHPUnit_Framework_TestCase
@@ -12,7 +13,7 @@ class PDODriverTest extends \PHPUnit_Framework_TestCase
      */
     public function synopsis()
     {
-        /* Create a PDO driver from connection params. Identical to below. */
+        /* Create a PDO driver from connection params. Functionally identical to below. */
         $driver = new PDODriver([
             PDODriver::OPT_DSN => 'sqlite::memory:',
             PDODriver::OPT_USERNAME => null,
@@ -21,8 +22,8 @@ class PDODriverTest extends \PHPUnit_Framework_TestCase
         ]);
 
         /* Create a PDO driver directly from a PDO object. */
-        $pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-        $driver = new PDODriver([PDODriver::OPT_PDO => $pdo]);
+        $pdo = new PDO('sqlite::memory:');
+        $driver = new PDODriver([PDODriver::OPT_PDO => $pdo, PDODriver::OPT_OPTIONS => [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]]);
 
         /* Executes statements without params, returning affected rows */
         $this->assertEquals(
@@ -65,7 +66,17 @@ class PDODriverTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    public function getGetter()
+    public function testIncorrectArgs()
+    {
+        try {
+            $drv = new PDODriver([]);
+            $this->fail("DriverException expected when insufficient connection arguments provided.");
+        } catch (DriverException $e) {
+            // Expected
+        }
+    }
+
+    public function testGetter()
     {
         $pdo = new PDO('sqlite::memory:');
         $driver = new PDODriver([PDODriver::OPT_PDO => $pdo]);

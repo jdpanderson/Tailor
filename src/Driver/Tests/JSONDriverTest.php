@@ -6,10 +6,26 @@ use Tailor\Model\Table;
 use Tailor\Model\Column;
 use Tailor\Model\Types\Integer;
 use Tailor\Driver\Driver;
+use Tailor\Driver\DriverException;
 use Tailor\Driver\JSONDriver;
 
 class JSONDriverTest extends \PHPUnit_Framework_TestCase
 {
+    public function testGetOptions()
+    {
+        $this->assertTrue(is_array(JSONDriver::getOptions()), "Array of driver options expected");
+    }
+
+    public function testConstructor()
+    {
+        try {
+            $drv = new JSONDriver([]);
+            $this->fail("DriverException expected when no filename is present.");
+        } catch (DriverException $e) {
+            // Expected
+        }
+    }
+
     public function testLoad()
     {
         /* Loading a non-existant file should fail. */

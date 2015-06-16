@@ -23,4 +23,14 @@ class TableTest extends \PHPUnit_Framework_TestCase
         $tableCopy->columns[0]->name = "baz";
         $this->assertFalse($table->equals($tableCopy));
     }
+
+    public function testGetColumnByName()
+    {
+        $foo = new Column('foo');
+        $table = new Table();
+        $table->columns[] = $foo;
+
+        $this->assertEquals($foo, $table->getColumnByName('foo'));
+        $this->assertFalse($table->getColumnByName('bar'));
+    }
 }
