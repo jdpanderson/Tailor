@@ -249,7 +249,7 @@ class JSONDriver extends BaseDriver
         foreach ($table->columns as $column) {
             $colData = (array)$column;
             $colData['type'] = (array)$column->type;
-            $colData['type']['type'] = array_pop(explode("\\", get_class($column->type)));
+            $colData['type']['type'] = $column->getType()->getName();
             $tblData['columns'][] = $colData;
         }
 

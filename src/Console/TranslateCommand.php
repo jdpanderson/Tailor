@@ -25,9 +25,9 @@ class TranslateCommand extends Command
                 'The source of schema information'
             )
             ->addArgument(
-               'destination',
-               InputArgument::REQUIRED,
-               'The the destination for the schema'
+                'destination',
+                InputArgument::REQUIRED,
+                'The the destination for the schema'
             )->addOption(
                 'src-opt',
                 's',
@@ -46,7 +46,9 @@ class TranslateCommand extends Command
         $srcOpts = [];
         foreach ($input->getOption('src-opt') as $opt) {
             if (!$this->parseOption($srcOpts, $opt)) {
-                $output->writeln("<warning>Source option does not appear to be in valid format. Option dropped.</warning>");
+                $output->writeln(
+                    "<warning>Source option does not appear to be in valid format. Option dropped.</warning>"
+                );
             }
         }
 
@@ -57,7 +59,9 @@ class TranslateCommand extends Command
         $dstOpts = [];
         foreach ($input->getOption('dst-opt') as $opt) {
             if (!$this->parseOption($dstOpts, $opt)) {
-                $output->writeln("<warning>Destination option does not appear to be in valid format. Option dropped.</warning>");
+                $output->writeln(
+                    "<warning>Destination option does not appear to be in valid format. Option dropped.</warning>"
+                );
             }
         }
 

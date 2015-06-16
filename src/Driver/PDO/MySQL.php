@@ -331,7 +331,11 @@ class MySQL extends PDODriver
             case 'VARCHAR':
             case 'BINARY':
             case 'VARBINARY':
-                $column->type = new String((int)$typeParams, !in_array($type, ['CHAR', 'BINARY']), strpos($type, 'BINARY') !== false);
+                $column->type = new String(
+                    (int)$typeParams,
+                    !in_array($type, ['CHAR', 'BINARY']),
+                    strpos($type, 'BINARY') !== false
+                );
                 break;
 
             case 'TINYTEXT':

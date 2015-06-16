@@ -3,7 +3,11 @@
         "psr-4": { "Tailor\\": "src/" }
     },
     "require": {
-        "twig/twig": "1.*",
+        "twig/twig": "~1.0",
         "symfony/console": ">=2.5"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.0",
+        "phpcs/phpcs": "~2.0"
     }
 }

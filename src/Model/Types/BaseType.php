@@ -17,6 +17,17 @@ class BaseType implements Type
     protected static $fields_ = [];
 
     /**
+     * Get the name of the type.
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        $classParts = explode("\\", get_called_class());
+        return end($classParts);
+    }
+
+    /**
      * Compare this Type to another
      *
      * @param Type $type The type to compare.

@@ -23,7 +23,9 @@ class PDORunnerTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertEquals(
             "test",
-            $pdo->query("SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='test'")->fetch(PDO::FETCH_COLUMN),
+            $pdo->query(
+                "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='test'"
+            )->fetch(PDO::FETCH_COLUMN),
             "Expected table was NOT created"
         );
 

@@ -183,7 +183,14 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
         /* Unhandled types */
         $data = self::$describeTableData;
-        $data[] = ['Field' => 'Unsupported1', 'Type' => 'bit', 'Null' => 'NO', 'Key' => '', 'Default' => '', 'Extra' => ''];
+        $data[] = [
+            'Field' => 'Unsupported1',
+            'Type' => 'bit',
+            'Null' => 'NO',
+            'Key' => '',
+            'Default' => '',
+            'Extra' => ''
+        ];
 
         $drv = $this->setupPassthrough($data);
         try {
@@ -195,7 +202,14 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
         /* Unhandled types */
         $data = self::$describeTableData;
-        $data[] = ['Field' => 'Unknown1', 'Type' => 'fubar', 'Null' => 'NO', 'Key' => '', 'Default' => '', 'Extra' => ''];
+        $data[] = [
+            'Field' => 'Unknown1',
+            'Type' => 'fubar',
+            'Null' => 'NO',
+            'Key' => '',
+            'Default' => '',
+            'Extra' => ''
+        ];
         $drv = $this->setupPassthrough($data);
         try {
             $tbl = $drv->getTable('ignored', 'ignored', 'ignored');

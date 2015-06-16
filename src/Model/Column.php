@@ -89,6 +89,11 @@ class Column
         return $this->type->equals($column->type);
     }
 
+    public function getType()
+    {
+        return $this->type;
+    }
+
     /**
      * If cloned, make sure the type is also cloned.
      */
