@@ -4,6 +4,7 @@ namespace Tailor\Driver\PDO;
 
 use PDO;
 use PDOException;
+use Tailor\Driver\DriverException;
 use Tailor\Util\String as StringUtil;
 use Tailor\Model\Table;
 use Tailor\Model\Column;
@@ -20,6 +21,9 @@ use Tailor\Model\Types\String;
  */
 class SQLite extends PDODriver
 {
+    /**
+     * Note: SQLite's type system is simple.
+     */
     private static $intTypeMap = [
         'INT2' => 'SMALLINT',
         'INT4' => 'INTEGER',
@@ -50,7 +54,7 @@ class SQLite extends PDODriver
      * @var int[]
      */
     private static $intSizeMap = [
-        'TINYINY' => 1,
+        'TINYINT' => 1,
         'SMALLINT' => 2,
         'MEDIUMINT' => 3,
         'INTEGER' => 4,
@@ -80,9 +84,7 @@ class SQLite extends PDODriver
      */
     private static $floatSizeMap = [
         'FLOAT' => 4,
-        'DOUBLE' => 8,
-        'DOUBLE PRECISION' => 8,
-        'REAL' => 8
+        'DOUBLE' => 8
     ];
 
     /**
@@ -155,7 +157,7 @@ class SQLite extends PDODriver
             $column->null = !(int)$colData['notnull'];
             $column->primary = ((int)$colData['pk']) > 0;
             $column->default = $colData['dflt_value'];
-            //$column->sequence = // May need to parse sqlite_master for table info.
+            //$column->sequence = // XXX TODO May need to parse sqlite_master for table info.
 
             list($type, $typeParams, $typeExtra) = $this->parseTypeParams($colData['type']);
 
@@ -215,11 +217,6 @@ class SQLite extends PDODriver
                     );
                     break;
 
-                case 'BIT': /* Easily supportable, but not of major interest to me right now. */
-                case 'SET': /* Not widely supported. Can be represented by a 64-bit integer. */
-                case 'YEAR': /* Not widely supported. Can be represented by a >16-bit integer. */
-                    throw new DriverException("Sorry, $type is not yet supported");
-
                 default:
                     throw new DriverException("Type $type is not known");
             }
@@ -255,54 +252,20 @@ class SQLite extends PDODriver
                 implode(",\n", $cols)
             );
         } else {
-            /* Index of columns in the table's new state */
-            $newCols = [];
-            foreach ($table->columns as $idx => $column) {
-                $newCols[$idx] = $column->name;
-            }
-
-            /* Index of columns in the table's old state */
-            $oldCols = [];
-            foreach ($curTable->columns as $idx => $column) {
-                $oldCols[$idx] = $column->name;
-            }
-
             $sql = [];
+            list($add, $drop, $change) = Table::columnDiff($curTable, $table);
 
-            /* Drop any tables that are in the old and not the new */
-            foreach (array_diff($oldCols, $newCols) as $remove) {
-                $sql[] = sprintf("DROP COLUMN %s", $this->quoteIdentifier($remove));
+            foreach ($drop as $dropCol) {
+                $sql[] = sprintf("DROP COLUMN %s", $this->quoteIdentifier($dropCol->name));
             }
 
-            /* Add columns that are in the new but not the old */
-            foreach (array_diff($newCols, $oldCols) as $create) {
-                foreach ($table->columns as $column) {
-                    if ($column->name === $create) {
-                        $sql[] = sprintf("ADD COLUMN %s", $this->columnToSQL($column));
-                        break;
-                    }
-                }
+            foreach ($add as $addCol) {
+                $sql[] = sprintf("ADD COLUMN %s", $this->columnToSQL($addCol));
             }
 
-            /* Compare any common columns, and modify if unequal */
-            foreach (array_intersect($newCols, $oldCols) as $common) {
-                $newCol = $oldCol = null;
-                foreach ($table->columns as $column) {
-                    if ($column->name === $common) {
-                        $newCol = $column;
-                        break;
-                    }
-                }
-                foreach ($curTable->columns as $column) {
-                    if ($column->name === $common) {
-                        $oldCol = $column;
-                        break;
-                    }
-                }
-
-                if ($newCol && $oldCol && !$newCol->equals($oldCol)) {
-                    $sql[] = sprintf("MODIFY %s", $this->columnToSQL($newCol));
-                }
+            foreach ($change as $changedCols) {
+                list($oldCol, $newCol) = $changedCols;
+                $sql[] = sprintf("MODIFY %s", $this->columnToSQL($newCol));
             }
 
             if (empty($sql)) {
@@ -333,22 +296,29 @@ class SQLite extends PDODriver
     }
 
     /**
-     * Parse MySQL type parameters, e.g. The 50 in VARCHAR(50)
+     * Parse SQLite type details, e.g. The 50 in VARCHAR(50)
      *
      * @param string $type The type as returned by MySQL
      * @return [string, string, string] The bare type, its params, and anything extra.
      */
     private static function parseTypeParams($type)
     {
+        $extra = '';
+
+        /* SQLite puts UNSIGNED first, which muddles the type. Parse it first. */
+        if (stripos($type, 'UNSIGNED ') === 0) {
+            $extra = 'UNSIGNED';
+            $type = substr($type, strlen('UNSIGNED ')); // Strip off 'UNSIGNED '
+        }
+
         if (strpos($type, '(') === false) {
             return [strtoupper($type), null, null];
         }
 
         list($type, $params) = explode('(', $type, 2);
 
-        $extra = '';
         if (($bracket = strrpos($params, ')')) !== false) {
-            $extra = strtoupper(trim(substr($params, $bracket + 1)));
+            $params = substr($params, 0, $bracket);
         }
 
         return [strtoupper($type), rtrim($params, ')'), $extra];
@@ -399,11 +369,11 @@ class SQLite extends PDODriver
                 $type = "TIME";
             }
         } elseif ($column->type instanceof Boolean) {
-            /* MySQL doesn't directly support boolean */
-            $type = "TINYINT(1) UNSIGNED";
+            /* SQLite doesn't directly support boolean */
+            $type = "UNSIGNED TINYINT(1)";
         } elseif ($column->type instanceof Enum) {
-            $values = array_map([$this, 'quote'], $column->type->values);
-            $type = "ENUM(" . implode(",", $values) . ")";
+            $len = array_reduce($column->type->values, function($carry, $item) { return max($carry, $item); }, 0);
+            $type = sprintf("VARCHAR(%d)", $len);
         } else {
             throw new DriverException("Unsupported type: " . get_class($column->type));
         }
@@ -414,7 +384,7 @@ class SQLite extends PDODriver
             $sql[] = "PRIMARY KEY";
         }
         if ($column->sequence) {
-            $sql[] = "AUTO_INCREMENT";
+            $sql[] = "AUTOINCREMENT";
         }
         if (!$column->null) {
             $sql[] = "NOT NULL";

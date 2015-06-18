@@ -2,6 +2,7 @@
 
 namespace Tailor\Driver\Tests;
 
+use Tailor\Driver\DriverException;
 use Tailor\Driver\TwigDriver;
 use Tailor\Model\Table;
 use Tailor\Model\Column;
@@ -36,5 +37,20 @@ class TwigDriverTest extends \PHPUnit_Framework_TestCase
         $output = file_get_contents($outfile);
 
         $this->assertEquals("MyDatabase.MySchema.MyTable:\n*MyColumn\n", $output);
+    }
+
+    public function testGetOptions()
+    {
+        $this->assertTrue(is_array(TwigDriver::getOptions()));
+    }
+
+    public function testInvalidOptions()
+    {
+        try {
+            $drv = new TwigDriver();
+            $this->fail("TwigDriver without options should not work.");
+        } catch (DriverException $e) {
+            // Expected
+        }
     }
 }

@@ -13,6 +13,7 @@ use Tailor\Model\Types\DateTime;
 use Tailor\Model\Types\Decimal;
 use Tailor\Model\Types\Enum;
 use Tailor\Driver\Driver;
+use Tailor\Driver\DriverException;
 use Tailor\Driver\PDO\SQLite as SQLiteDriver;
 
 class SQLiteDriverTest extends \PHPUnit_Framework_TestCase
@@ -35,21 +36,40 @@ class SQLiteDriverTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse($drv->dropSchema(null, null));
 
         $table = new Table('test', [
-            new Column('i', new Integer()),
-            new Column('s', new String()),
-            new Column('c', new String(10, false, false)),
-            new Column('f', new Float()),
-            //new Column('b', new Boolean()),
-            new Column('t', new DateTime()),
-            new Column('d', new Decimal()),
-            //new Column('e', new Enum(['foo', 'bar'])), // Translated to string.
+            new Column('int', new Integer()),
+            new Column('str', new String()),
+            new Column('chr', new String(10, false, false)),
+            new Column('flt', new Float()),
+            new Column('bool', new Boolean()),
+            new Column('ts', new DateTime()),
+            new Column('dec', new Decimal()),
+            new Column('enum', new Enum(['foo', 'bar'])), // Translated to string.
         ]);
 
         $this->assertTrue($drv->setTable(null, null, $table));
         $this->assertEquals(['test'], $drv->getTableNames(null, null));
-        //var_dump($drv->getTable(null, null, 'test'));
+        $tableModel = $drv->getTable(null, null, 'test');
+        // XXX FIXME: test $tableModel a lot here!
 
         $this->assertTrue($drv->dropTable(null, null, 'test'));
         $this->assertEquals([], $drv->getTableNames(null, null));
+    }
+
+    /**
+     * SQLite will take *anything* as a type. I would prefer to support only proper SQL types.
+     */
+    public function testUnsupportedTypes()
+    {
+        $pdo = new PDO('sqlite::memory:');
+        $pdo->exec("CREATE TABLE whoathere (whatisthis SUPERCALIFRAGILISTICEXPIALIDOCIOUS)");
+        $drv = new SQLiteDriver(['pdo' => $pdo]);
+        try {
+            $drv->getTable(null, null, 'whoathere');
+            $this->fail("We should hit an unknown type.");
+        } catch (DriverException $e) {
+            // Expected
+        }
+
+        /* SQLite can pretty much name a column whatever you want. */
     }
 }

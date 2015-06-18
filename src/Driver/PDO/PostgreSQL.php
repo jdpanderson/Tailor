@@ -1,24 +1,14 @@
 <?php
 
-namespace Tailor\Driver;
+namespace Tailor\Driver\PDO;
 
 use Tailor\Model\Table;
 
 /**
  * Interface expected to be implemented by all drivers.
  */
-class PostgreSQLDriver extends PDODriver
+class PostgreSQL extends PDODriver
 {
-    /**
-     * Get the PDO DSN prefix; Always 'mysql:'.
-     *
-     * @return string The DSN prefix for this driver.
-     */
-    public static function getDSNPrefix()
-    {
-        return 'pgsql:';
-    }
-
     /**
      * Get a list of available database names.
      *

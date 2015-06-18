@@ -68,7 +68,8 @@ class PDODriver extends BaseDriver
         try {
             return $this->pdoRunner->exec($query, $params);
         } catch (PDOException $e) {
-            // TODO: Logging here.
+            // TODO: PSR logging here.
+            //error_log("Exception caught executing query: {$e->getMessage()} for query {$query}");
             return false;
         }
     }
@@ -87,6 +88,7 @@ class PDODriver extends BaseDriver
             return $this->pdoRunner->query($query, $params, $fetchMode);
         } catch (PDOException $e) {
             // TODO: Logging here.
+            //error_log("Exception caught executing query: {$e->getMessage()} for query {$query}");
             return false;
         }
     }

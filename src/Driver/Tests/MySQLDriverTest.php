@@ -100,6 +100,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(['foo'], $drv->getDatabaseNames());
         $this->assertEquals([Driver::SCHEMA_DEFAULT], $drv->getSchemaNames('ignored'));
         $this->assertEquals(['foo'], $drv->getTableNames('ignored', 'ignored'));
+        $this->assertEquals(['foo'], $drv->getTableNames(Driver::DATABASE_DEFAULT, Driver::SCHEMA_DEFAULT));
 
         $drv = $this->setupPassthrough(false);
         $this->assertFalse($drv->getDatabaseNames());
@@ -114,35 +115,55 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
     public function testCreate()
     {
+        /* Handle normal success */
         $drv =$this->setupPassthrough(null, 1);
         $this->assertTrue($drv->createDatabase('ignored'));
         $this->assertTrue($drv->createSchema('ignored', 'ignored'));
 
+        /* Handle query failure */
         $drv = $this->setupPassthrough(null, false);
         $this->assertFalse($drv->createDatabase('ignored'));
         $this->assertFalse($drv->createSchema('ignored', 'ignored'));
 
+        /* Ensure that an exception is handled */
         $drv = $this->setupPassthrough(null, new PDOException());
         $this->assertFalse($drv->createDatabase('ignored'));
         $this->assertFalse($drv->createSchema('ignored', 'ignored'));
+
+        /* Can't create without real names */
+        $this->assertFalse($drv->createDatabase(Driver::DATABASE_DEFAULT));
+        $this->assertFalse($drv->createSchema(Driver::DATABASE_DEFAULT, Driver::SCHEMA_DEFAULT));
     }
 
     public function testDrop()
     {
+        /* Test success */
         $drv = $this->setupPassthrough(null, 1);
         $this->assertTrue($drv->dropDatabase('ignored'));
         $this->assertFalse($drv->dropSchema('ignored', 'ignored')); /* Schemata not supported. */
         $this->assertTrue($drv->dropTable('ignored', 'ignored', 'ignored'));
+        $this->assertTrue($drv->dropTable(Driver::DATABASE_DEFAULT, 'ignored', 'ignored'));
+        $this->assertEquals('DROP TABLE `ignored`.`ignored`', $this->lastExecSQL);
+        $this->assertTrue($drv->dropTable('ignored', Driver::SCHEMA_DEFAULT, 'ignored'));
+        $this->assertEquals('DROP TABLE `ignored`.`ignored`', $this->lastExecSQL);
+        $this->assertTrue($drv->dropTable(Driver::DATABASE_DEFAULT, Driver::SCHEMA_DEFAULT,  'ignored'));
+        $this->assertEquals('DROP TABLE `ignored`', $this->lastExecSQL, "With default database/schema, drop should happen without database name");
 
+        /* Dropping a database without providing a name should always fail. */
+        $this->assertFalse($drv->dropDatabase(Driver::DATABASE_DEFAULT));
+
+        /* Test that query failure is handled. */
         $drv = $this->setupPassthrough(null, false);
         $this->assertFalse($drv->dropDatabase('ignored'));
         $this->assertFalse($drv->dropSchema('ignored', 'ignored'));
         $this->assertFalse($drv->dropTable('ignored', 'ignored', 'ignored'));
 
+        /* Test that exceptions are handled. */
         $drv = $this->setupPassthrough(null, new PDOException());
         $this->assertFalse($drv->dropDatabase('ignored'));
         $this->assertFalse($drv->dropSchema('ignored', 'ignored'));
         $this->assertFalse($drv->dropTable('ignored', 'ignored', 'ignored'));
+
     }
 
     public function testGetTable()

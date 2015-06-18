@@ -439,29 +439,6 @@ class MySQL extends PDODriver
     }
 
     /**
-     * Run a mysql control query and return the result in the given mode.
-     *
-     * @param string $query The query to execute
-     * @param int $fetchMode The PDO::FETCH_* mode, or false to execute rather than query.
-     * @return mixed The result, or false on failure.
-     */
-    private function run($query, $fetchMode)
-    {
-        try {
-            if ($fetchMode === false) {
-                return $this->pdo->exec($query);
-            }
-
-            if (!($stmt = $this->pdo->query($query))) {
-                return false;
-            }
-            return $stmt->fetchAll($fetchMode);
-        } catch (PDOException $e) {
-            return false;
-        }
-    }
-
-    /**
      * Turn a column model into SQL for alter or create.
      *
      * @param Column $column The column to convert.
