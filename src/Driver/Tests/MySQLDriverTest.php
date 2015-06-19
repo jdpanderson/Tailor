@@ -22,6 +22,11 @@ use PDOException;
 use Exception;
 use ReflectionProperty;
 
+/**
+ * Test the MySQL driver against mocked data.
+ *
+ * No database servers were harmed in the making of these tests.
+ */
 class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -38,6 +43,11 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
      */
     public $lastExecSQL;
 
+    /**
+     * Data copied from: $pdo->query("DESCRIBE <table>")->fetchAll(PDO::FETCH_ASSOC)
+     *
+     * @var string[]
+     */
     // @codingStandardsIgnoreStart
     private static $describeTableData = [
         ['Field' => 'Id',         'Type' => 'int(11)',       'Null' => 'NO',  'Key' => 'PRI', 'Default' => 'NULL', 'Extra' => 'auto_increment'],
@@ -88,6 +98,7 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 
         return $drv;
     }
+
     public function testInterface()
     {
         $drv = $this->setupPassthrough(false, false);
@@ -199,6 +210,10 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($tbl->columns[7]->type instanceof Enum);
         $this->assertEquals('foo', $tbl->columns[7]->default);
 
+        /* Do it again without database/schema names. Make sure it's identical. */
+        $alt = $drv->getTable(Driver::DATABASE_DEFAULT, Driver::SCHEMA_DEFAULT, 'ignored');
+        $this->assertEquals($tbl, $alt);
+
         // XXX assert a lot of things here. This does not cover every detail.
         //var_dump($tbl);
 
@@ -257,9 +272,8 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
         $drv = $this->setupPassthrough(false, 1);
         $drv->setTable('testDB2', 'ignored', $tbl);
 
-        $this->assertEquals(
-            // @codingStandardsIgnoreStart
-            'CREATE TABLE `testDB2`.`testTbl1` (
+        // @codingStandardsIgnoreStart
+        $createSQL = 'CREATE TABLE %TBL% (
 `Id` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
 `Name` VARCHAR(9) NOT NULL DEFAULT "",
 `Country` CHAR(8) NOT NULL DEFAULT "",
@@ -268,10 +282,18 @@ class MySQLDriverTest extends \PHPUnit_Framework_TestCase
 `Average` FLOAT DEFAULT "",
 `Update` TIMESTAMP NOT NULL DEFAULT "",
 `Type` ENUM("foo") NOT NULL DEFAULT "foo"
-) ENGINE=InnoDB DEFAULT CHARSET=utf8',
-            // @codingStandardsIgnoreEnd
+) ENGINE=InnoDB DEFAULT CHARSET=utf8';
+        // @codingStandardsIgnoreEnd
+
+        $this->assertEquals(
+            str_replace('%TBL%', '`testDB2`.`testTbl1`', $createSQL),
             $this->lastExecSQL
         );
+
+        /* Without DB/schema, the create shouldn't specify a DB/schema */
+        $drv->setTable(Driver::DATABASE_DEFAULT, Driver::SCHEMA_DEFAULT, $tbl);
+        $this->assertEquals(str_replace('%TBL%', '`testTbl1`', $createSQL), $this->lastExecSQL);
+
 
         $drv = $this->setupPassthrough(self::$describeTableData, 1);
 
