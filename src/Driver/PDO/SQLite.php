@@ -18,6 +18,16 @@ use Tailor\Model\Types\String;
 
 /**
  * Driver providing the SQLite dialect of SQL.
+ *
+ * Notes:
+ * - SQLite's type system is dynamic, not static like other database engines.
+ * - SQLite values have storage classes: NULL, INT, REAL, TEXT, and BLOB.
+ * - SQLite columns have affinity: TEXT, NUMERIC, INT, REAL, and NONE.
+ * - Any value may take any storage class, with the exception of INT PKs.
+ * - SQLite will accept nearly any type, even nonsense.
+ *
+ * Basically, that means that conversion between SQLite any anything else will be lossy.
+ *
  */
 class SQLite extends PDODriver
 {
@@ -335,42 +345,15 @@ class SQLite extends PDODriver
         $sql = [self::quoteIdentifier($column->name)];
 
         if ($column->type instanceof String) {
-            if ($column->type->length < 255) {
-                $type = $column->type->variable ? 'VAR' : '';
-                $type .= $column->type->binary ? 'BINARY' : 'CHAR';
-                $type .= "({$column->type->length})";
-            } elseif ($column->type->length <= 255) {
-                $type = $column->type->binary ? 'TINYBLOB' : 'TINYTEXT';
-            } elseif ($column->type->length <= 65535) {
-                $type = $column->type->binary ? 'BLOB' : 'TEXT';
-            } elseif ($column->type->length <= (pow(2, 24) - 1)) {
-                $type = $column->type->binary ? 'MEDIUMBLOB' : 'MEDIUMTEXT';
-            } else {
-                $type = $column->type->binary ? 'LONGBLOB' : 'LONGTEXT';
-            }
-        } elseif ($column->type instanceof Integer) {
-            $typeMap = array_flip(self::$intSizeMap);
-
-            if (isset($typeMap[$column->type->size])) {
-                $type = $typeMap[$column->type->size];
-            } else {
-                $type = ($column->type->size > 4) ? 'BIGINT' : 'INT';
-            }
+            $type = $column->type->binary ? "BLOB" : "VARCHAR({$column->type->length})";
+        } elseif ($column->type instanceof Integer || $column->type instanceof Boolean) {
+            $type = "INTEGER";
         } elseif ($column->type instanceof Float) {
-            $type = ($column->type->size > 4) ? 'DOUBLE' : 'FLOAT';
+            $type = "FLOAT";
         } elseif ($column->type instanceof Decimal) {
             $type = "DECIMAL({$column->type->precision}, {$column->type->scale})";
         } elseif ($column->type instanceof DateTime) {
-            if ($column->type->date && $column->type->time) {
-                $type = $column->type->zone ? "TIMESTAMP" : "DATETIME";
-            } elseif ($column->type->date) {
-                $type = "DATE";
-            } elseif ($column->type->time) {
-                $type = "TIME";
-            }
-        } elseif ($column->type instanceof Boolean) {
-            /* SQLite doesn't directly support boolean */
-            $type = "UNSIGNED TINYINT(1)";
+            $type = $column->type->time ? "DATETIME" : "DATE";
         } elseif ($column->type instanceof Enum) {
             $len = array_reduce($column->type->values, function($carry, $item) { return max($carry, $item); }, 0);
             $type = sprintf("VARCHAR(%d)", $len);
